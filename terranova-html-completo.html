@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TerraNova Viajes - Plataforma de Pasajes Interprovinciales</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState } = React;
+        
+        const TerraNovaViajes = () => {
+          const [userType, setUserType] = useState(null);
+          const [isLoggedIn, setIsLoggedIn] = useState(false);
+          const [showLogin, setShowLogin] = useState(true);
+          
+          const [buses, setBuses] = useState([
+            {
+              id: 1,
+              empresa: 'Oltursa',
+              origen: 'Lima',
+              destino: 'Cusco',
+              fecha: '2025-12-01',
+              hora: '22:00',
+              precio: 120,
+              asientos: Array(40).fill(null).map((_, i) => ({ numero: i + 1, ocupado: i < 5 }))
+            },
+            {
+              id: 2,
+              empresa: 'Civa',
+              origen: 'Lima',
+              destino: 'Cajamarca',
+              fecha: '2025-12-02',
+              hora: '20:00',
+              precio: 90,
+              asientos: Array(40).fill(null).map((_, i) => ({ numero: i + 1, ocupado: i < 3 }))
+            },
+            {
+              id: 3,
+              empresa: 'Cruz del Sur',
+              origen: 'Lima',
+              destino: 'Puno',
+              fecha: '2025-12-03',
+              hora: '18:00',
+              precio: 150,
+              asientos: Array(40).fill(null).map((_, i) => ({ numero: i + 1, ocupado: i < 7 }))
+            }
+          ]);
+
+          const [searchParams, setSearchParams] = useState({ origen: '', destino: '', fecha: '' });
+          const [searchResults, setSearchResults] = useState([]);
+          const [selectedBus, setSelectedBus] = useState(null);
+          const [selectedSeat, setSelectedSeat] = useState(null);
+          const [reservationData, setReservationData] = useState({ nombre: '', dni: '', correo: '' });
+          const [showConfirmation, setShowConfirmation] = useState(false);
+          const [newBus, setNewBus] = useState({ empresa: '', origen: '', destino: '', fecha: '', hora: '', precio: '', numAsientos: 40 });
+          const [userView, setUserView] = useState('home');
+          const [myReservations, setMyReservations] = useState([]);
+
+          // Iconos SVG
+          const BusIcon = () => (
+            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/>
+            </svg>
+          );
+
+          const CalendarIcon = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          );
+
+          const MapPinIcon = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          );
+
+          const UserIcon = () => (
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          );
+
+          const LogOutIcon = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          );
+
+          const PlusIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          );
+
+          const SearchIcon = () => (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          );
+
+          const LoginForm = () => {
+            const [loginData, setLoginData] = useState({ email: '', password: '' });
+            
+            const handleLogin = (type) => {
+              if (loginData.email && loginData.password) {
+                setIsLoggedIn(true);
+                setUserType(type);
+              }
+            };
+
+            return (
+              <div className="min-h-screen flex items-center justify-center bg-red-900">
+                <div className="bg-white p-8 rounded-lg shadow-2xl w-96">
+                  <div className="text-center mb-8">
+                    <div className="flex justify-center mb-4 text-red-900">
+                      <BusIcon />
+                    </div>
+                    <h1 className="text-3xl font-bold text-red-900">TerraNova Viajes</h1>
+                    <p className="text-gray-600 mt-2">Tu compañero de viaje</p>
+                  </div>
+
+                  {showLogin ? (
+                    <div>
+                      <h2 className="text-xl font-semibold mb-4 text-gray-800">Iniciar Sesión</h2>
+                      <input
+                        type="email"
+                        placeholder="Correo electrónico"
+                        className="w-full p-3 border border-gray-300 rounded mb-3"
+                        value={loginData.email}
+                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                      />
+                      <input
+                        type="password"
+                        placeholder="Contraseña"
+                        className="w-full p-3 border border-gray-300 rounded mb-4"
+                        value={loginData.password}
+                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                      />
+                      
+                      <button
+                        onClick={() => handleLogin('usuario')}
+                        className="w-full py-3 bg-red-900 text-white rounded font-semibold mb-2 hover:bg-red-800 transition"
+                      >
+                        Entrar como Usuario
+                      </button>
+                      <button
+                        onClick={() => handleLogin('empresa')}
+                        className="w-full py-3 border-2 border-red-900 text-red-900 rounded font-semibold hover:bg-red-50 transition"
+                      >
+                        Entrar como Empresa
+                      </button>
+                      
+                      <p className="text-center mt-4 text-sm text-gray-600">
+                        ¿No tienes cuenta?{' '}
+                        <button onClick={() => setShowLogin(false)} className="font-semibold text-red-900 hover:underline">
+                          Registrarse
+                        </button>
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <h2 className="text-xl font-semibold mb-4 text-gray-800">Registrarse</h2>
+                      <input type="text" placeholder="Nombre completo" className="w-full p-3 border border-gray-300 rounded mb-3" />
+                      <input
+                        type="email"
+                        placeholder="Correo electrónico"
+                        className="w-full p-3 border border-gray-300 rounded mb-3"
+                        value={loginData.email}
+                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                      />
+                      <input
+                        type="password"
+                        placeholder="Contraseña"
+                        className="w-full p-3 border border-gray-300 rounded mb-4"
+                        value={loginData.password}
+                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                      />
+                      
+                      <button
+                        onClick={() => {
+                          if (loginData.email && loginData.password) {
+                            setShowLogin(true);
+                            alert('¡Registro exitoso! Ahora puedes iniciar sesión.');
+                          }
+                        }}
+                        className="w-full py-3 bg-red-900 text-white rounded font-semibold hover:bg-red-800 transition"
+                      >
+                        Crear Cuenta
+                      </button>
+                      
+                      <p className="text-center mt-4 text-sm text-gray-600">
+                        ¿Ya tienes cuenta?{' '}
+                        <button onClick={() => setShowLogin(true)} className="font-semibold text-red-900 hover:underline">
+                          Iniciar sesión
+                        </button>
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          };
+
+          const EmpresaPanel = () => {
+            const handleAddBus = () => {
+              if (newBus.empresa && newBus.origen && newBus.destino && newBus.fecha && newBus.hora && newBus.precio) {
+                const bus = {
+                  id: buses.length + 1,
+                  ...newBus,
+                  precio: parseFloat(newBus.precio),
+                  asientos: Array(parseInt(newBus.numAsientos)).fill(null).map((_, i) => ({ numero: i + 1, ocupado: false }))
+                };
+                setBuses([...buses, bus]);
+                setNewBus({ empresa: '', origen: '', destino: '', fecha: '', hora: '', precio: '', numAsientos: 40 });
+                alert('¡Bus registrado exitosamente!');
+              } else {
+                alert('Por favor completa todos los campos');
+              }
+            };
+
+            return (
+              <div className="min-h-screen bg-gray-50">
+                <div className="p-6 bg-red-900">
+                  <div className="max-w-7xl mx-auto flex justify-between items-center">
+                    <div className="flex items-center gap-3 text-white">
+                      <BusIcon />
+                      <h1 className="text-2xl font-bold">TerraNova Viajes - Panel Empresa</h1>
+                    </div>
+                    <button
+                      onClick={() => { setIsLoggedIn(false); setUserType(null); }}
+                      className="flex items-center gap-2 bg-white text-red-900 px-4 py-2 rounded hover:bg-gray-100 transition"
+                    >
+                      <LogOutIcon />
+                      Cerrar Sesión
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-w-7xl mx-auto p-6">
+                  <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h2 className="text-2xl font-bold mb-6 text-red-900 flex items-center gap-2">
+                      <PlusIcon />
+                      Registrar Nuevo Bus
+                    </h2>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold mb-2 text-gray-700">Empresa</label>
+                        <select
+                          className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                          value={newBus.empresa}
+                          onChange={(e) => setNewBus({ ...newBus, empresa: e.target.value })}
+                        >
+                          <option value="">Seleccionar empresa</option>
+                          <option value="Oltursa">Oltursa</option>
+                          <option value="Civa">Civa</option>
+                          <option value="Cruz del Sur">Cruz del Sur</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold mb-2 text-gray-700">Número de Asientos</label>
+                        <input
+                          type="number"
+                          className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                          value={newBus.numAsientos}
+                          onChange={(e) => setNewBus({ ...newBus, numAsientos: e.target.value })}
+                          min="20" max="60"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold mb-2 text-gray-700">Origen</label>
+                        <select
+                          className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                          value={newBus.origen}
+                          onChange={(e) => setNewBus({ ...newBus, origen: e.target.value })}
+                        >
+                          <option value="">Seleccionar origen</option>
+                          <option value="Lima">Lima</option>
+                          <option value="Cusco">Cusco</option>
+                          <option value="Cajamarca">Cajamarca</option>
+                          <option value="Puno">Puno</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold mb-2 text-gray-700">Destino</label>
+                        <select
+                          className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                          value={newBus.destino}
+                          onChange={(e) => setNewBus({ ...newBus, destino: e.target.value })}
+                        >
+                          <option value="">Seleccionar destino</option>
+                          <option value="Lima">Lima</option>
+                          <option value="Cusco">Cusco</option>
+                          <option value="Cajamarca">Cajamarca</option>
+                          <option value="Puno">Puno</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold mb-2 text-gray-700">Fecha</label>
+                        <input
+                          type="date"
+                          className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                          value={newBus.fecha}
+                          onChange={(e) => setNewBus({ ...newBus, fecha: e.target.value })}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold mb-2 text-gray-700">Hora</label>
+                        <input
+                          type="time"
+                          className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                          value={newBus.hora}
+                          onChange={(e) => setNewBus({ ...newBus, hora: e.target.value })}
+                        />
+                      </div>
+
+                      <div className="col-span-2">
+                        <label className="block text-sm font-semibold mb-2 text-gray-700">Precio (S/.)</label>
+                        <input
+                          type="number"
+                          className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                          value={newBus.precio}
+                          onChange={(e) => setNewBus({ ...newBus, precio: e.target.value })}
+                          placeholder="Ej: 120"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleAddBus}
+                      className="mt-6 w-full py-3 bg-red-900 text-white rounded font-semibold flex items-center justify-center gap-2 hover:bg-red-800 transition"
+                    >
+                      <PlusIcon />
+                      Registrar Bus
+                    </button>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow-lg p-6">
+                    <h2 className="text-2xl font-bold mb-6 text-red-900">Buses Registrados</h2>
+                    
+                    <div className="space-y-4">
+                      {buses.map((bus) => {
+                        const ocupados = bus.asientos.filter(a => a.ocupado).length;
+                        const libres = bus.asientos.length - ocupados;
+                        
+                        return (
+                          <div key={bus.id} className="border-2 border-red-900 rounded-lg p-4 hover:shadow-md transition">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h3 className="text-xl font-bold text-red-900">{bus.empresa}</h3>
+                                <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                                  <p className="text-gray-700 flex items-center gap-1">
+                                    <MapPinIcon />
+                                    {bus.origen} → {bus.destino}
+                                  </p>
+                                  <p className="text-gray-700 flex items-center gap-1">
+                                    <CalendarIcon />
+                                    {bus.fecha} - {bus.hora}
+                                  </p>
+                                  <p className="text-gray-700 font-semibold">Precio: S/. {bus.precio}</p>
+                                  <p className="text-gray-700">Asientos: {libres} libres / {ocupados} ocupados</p>
+                                </div>
+                              </div>
+                              
+                              <div className="ml-4">
+                                <div className="grid grid-cols-10 gap-1">
+                                  {bus.asientos.slice(0, 20).map((asiento) => (
+                                    <div
+                                      key={asiento.numero}
+                                      className="w-6 h-6 rounded text-xs flex items-center justify-center font-semibold"
+                                      style={{
+                                        backgroundColor: asiento.ocupado ? '#7f1d1d' : '#e5e7eb',
+                                        color: asiento.ocupado ? 'white' : '#374151'
+                                      }}
+                                      title={`Asiento ${asiento.numero} - ${asiento.ocupado ? 'Ocupado' : 'Libre'}`}
+                                    >
+                                      {asiento.numero}
+                                    </div>
+                                  ))}
+                                </div>
+                                {bus.asientos.length > 20 && (
+                                  <p className="text-xs text-center mt-1 text-gray-500">
+                                    +{bus.asientos.length - 20} asientos más
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          };
+
+          const UsuarioPanel = () => {
+            const handleSearch = () => {
+              if (searchParams.origen && searchParams.destino && searchParams.fecha) {
+                let results = buses.filter(bus => 
+                  bus.origen === searchParams.origen &&
+                  bus.destino === searchParams.destino &&
+                  bus.fecha === searchParams.fecha
+                );
+                
+                if (results.length === 0) {
+                  const empresas = ['Oltursa', 'Civa', 'Cruz del Sur'];
+                  const horarios = ['08:00', '14:00', '18:00', '22:00'];
+                  const preciosBase = { 'Cusco': 120, 'Cajamarca': 90, 'Puno': 150, 'Lima': 100 };
+                  
+                  results = empresas.map((empresa, index) => {
+                    const asientosOcupados = Math.floor(Math.random() * 8) + 2;
+                    return {
+                      id: Date.now() + index,
+                      empresa: empresa,
+                      origen: searchParams.origen,
+                      destino: searchParams.destino,
+                      fecha: searchParams.fecha,
+                      hora: horarios[index % horarios.length],
+                      precio: preciosBase[searchParams.destino] || 100,
+                      asientos: Array(40).fill(null).map((_, i) => ({ 
+                        numero: i + 1, 
+                        ocupado: i < asientosOcupados 
+                      }))
+                    };
+                  });
+                  
+                  setBuses([...buses, ...results]);
+                }
+                
+                setSearchResults(results);
+              } else {
+                alert('Por favor completa todos los campos de búsqueda');
+              }
+            };
+
+            const handleSelectSeat = (asiento) => {
+              if (!asiento.ocupado) {
+                setSelectedSeat(asiento);
+              }
+            };
+
+            const handleConfirmReservation = () => {
+              if (reservationData.nombre && reservationData.dni && reservationData.correo) {
+                const updatedBuses = buses.map(bus => {
+                  if (bus.id === selectedBus.id) {
+                    return {
+                      ...bus,
+                      asientos: bus.asientos.map(a => 
+                        a.numero === selectedSeat.numero ? { ...a, ocupado: true } : a
+                      )
+                    };
+                  }
+                  return bus;
+                });
+                setBuses(updatedBuses);
+                
+                const newReservation = {
+                  id: Date.now(),
+                  pasajero: reservationData.nombre,
+                  dni: reservationData.dni,
+                  correo: reservationData.correo,
+                  empresa: selectedBus.empresa,
+                  origen: selectedBus.origen,
+                  destino: selectedBus.destino,
+                  fecha: selectedBus.fecha,
+                  hora: selectedBus.hora,
+                  asiento: selectedSeat.numero,
+                  precio: selectedBus.precio
+                };
+                setMyReservations([...myReservations, newReservation]);
+                
+                setShowConfirmation(true);
+              } else {
+                alert('Por favor completa todos tus datos');
+              }
+            };
+
+            // Vista HOME principal
+            if (userView === 'home') {
+              return (
+                <div className="min-h-screen bg-gray-50">
+                  <div className="p-6 bg-red-900">
+                    <div className="max-w-7xl mx-auto flex justify-between items-center">
+                      <div className="flex items-center gap-3 text-white">
+                        <BusIcon />
+                        <h1 className="text-2xl font-bold">TerraNova Viajes</h1>
+                      </div>
+                      <button
+                        onClick={() => { setIsLoggedIn(false); setUserType(null); setUserView('home'); }}
+                        className="flex items-center gap-2 bg-white text-red-900 px-4 py-2 rounded hover:bg-gray-100 transition"
+                      >
+                        <LogOutIcon />
+                        Cerrar Sesión
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-w-5xl mx-auto p-6 mt-10">
+                    <div className="text-center mb-12">
+                      <h2 className="text-4xl font-bold text-red-900 mb-4">Bienvenido a TerraNova Viajes</h2>
+                      <p className="text-gray-600 text-lg">¿Qué deseas hacer hoy?</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div 
+                        className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-red-900"
+                        onClick={() => setUserView('reservar')}
+                      >
+                        <div className="flex flex-col items-center text-center">
+                          <div className="w-20 h-20 bg-red-900 rounded-full flex items-center justify-center mb-4">
+                            <SearchIcon />
+                          </div>
+                          <h3 className="text-2xl font-bold text-red-900 mb-2">Reservar un Viaje</h3>
+                          <p className="text-gray-600">Busca y reserva tu próximo viaje interprovincial</p>
+                        </div>
+                      </div>
+
+                      <div 
+                        className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-red-900"
+                        onClick={() => setUserView('mis-reservas')}
+                      >
+                        <div className="flex flex-col items-center text-center">
+                          <div className="w-20 h-20 bg-red-900 rounded-full flex items-center justify-center mb-4 text-white">
+                            <UserIcon />
+                          </div>
+                          <h3 className="text-2xl font-bold text-red-900 mb-2">Mis Reservas</h3>
+                          <p className="text-gray-600">Ve todos tus viajes reservados</p>
+                          {myReservations.length > 0 && (
+                            <span className="mt-3 bg-red-900 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                              {myReservations.length} {myReservations.length === 1 ? 'reserva' : 'reservas'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Vista MIS RESERVAS
+            if (userView === 'mis-reservas') {
+              return (
+                <div className="min-h-screen bg-gray-50">
+                  <div className="p-6 bg-red-900">
+                    <div className="max-w-7xl mx-auto flex justify-between items-center">
+                      <div className="flex items-center gap-3 text-white">
+                        <BusIcon />
+                        <h1 className="text-2xl font-bold">TerraNova Viajes - Mis Reservas</h1>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setUserView('home')}
+                          className="bg-white text-red-900 px-4 py-2 rounded font-semibold hover:bg-gray-100 transition"
+                        >
+                          ← Inicio
+                        </button>
+                        <button
+                          onClick={() => { setIsLoggedIn(false); setUserType(null); setUserView('home'); }}
+                          className="flex items-center gap-2 bg-white text-red-900 px-4 py-2 rounded hover:bg-gray-100 transition"
+                        >
+                          <LogOutIcon />
+                          Cerrar Sesión
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="max-w-5xl mx-auto p-6">
+                    {myReservations.length === 0 ? (
+                      <div className="bg-white rounded-lg shadow-lg p-12 text-center">
+                        <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-6 flex items-center justify-center">
+                          <BusIcon />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-700 mb-4">No tienes reservas aún</h2>
+                        <p className="text-gray-600 mb-6">Comienza a planear tu próximo viaje</p>
+                        <button
+                          onClick={() => setUserView('reservar')}
+                          className="px-8 py-3 bg-red-900 text-white rounded font-semibold hover:bg-red-800 transition"
+                        >
+                          Reservar un viaje
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <h2 className="text-3xl font-bold text-red-900 mb-6">Tus Reservas</h2>
+                        <div className="space-y-4">
+                          {myReservations.map((reserva) => (
+                            <div key={reserva.id} className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-red-900">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <h3 className="text-2xl font-bold text-red-900 mb-3">{reserva.empresa}</h3>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <p className="text-gray-700 flex items-center gap-1">
+                                      <MapPinIcon />
+                                      <strong>Ruta:</strong> {reserva.origen} → {reserva.destino}
+                                    </p>
+                                    <p className="text-gray-700 flex items-center gap-1">
+                                      <CalendarIcon />
+                                      <strong>Fecha:</strong> {reserva.fecha}
+                                    </p>
+                                    <p className="text-gray-700">
+                                      <strong>Hora:</strong> {reserva.hora}
+                                    </p>
+                                    <p className="text-gray-700">
+                                      <strong>Asiento:</strong> {reserva.asiento}
+                                    </p>
+                                    <p className="text-gray-700">
+                                      <strong>Pasajero:</strong> {reserva.pasajero}
+                                    </p>
+                                    <p className="text-gray-700">
+                                      <strong>DNI:</strong> {reserva.dni}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right ml-6">
+                                  <p className="text-3xl font-bold text-red-900">S/. {reserva.precio}</p>
+                                  <span className="inline-block mt-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                    Confirmado
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => setUserView('reservar')}
+                          className="mt-6 w-full py-3 bg-red-900 text-white rounded font-semibold hover:bg-red-800 transition"
+                        >
+                          Reservar otro viaje
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            // CONFIRMACIÓN de reserva
+            if (showConfirmation) {
+              return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                  <div className="bg-white p-8 rounded-lg shadow-2xl max-w-md text-center">
+                    <div className="w-16 h-16 bg-red-900 rounded-full mx-auto mb-4 flex items-center justify-center">
+                      <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <h2 className="text-2xl font-bold mb-4 text-red-900">¡Reserva Confirmada!</h2>
+                    <div className="text-left bg-gray-50 p-4 rounded mb-6">
+                      <p className="mb-2"><strong>Pasajero:</strong> {reservationData.nombre}</p>
+                      <p className="mb-2"><strong>DNI:</strong> {reservationData.dni}</p>
+                      <p className="mb-2"><strong>Empresa:</strong> {selectedBus.empresa}</p>
+                      <p className="mb-2"><strong>Ruta:</strong> {selectedBus.origen} → {selectedBus.destino}</p>
+                      <p className="mb-2"><strong>Fecha:</strong> {selectedBus.fecha} - {selectedBus.hora}</p>
+                      <p className="mb-2"><strong>Asiento:</strong> {selectedSeat.numero}</p>
+                      <p className="font-bold text-red-900">Total: S/. {selectedBus.precio}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowConfirmation(false);
+                        setSelectedBus(null);
+                        setSelectedSeat(null);
+                        setReservationData({ nombre: '', dni: '', correo: '' });
+                        setSearchResults([]);
+                        setUserView('home');
+                      }}
+                      className="w-full py-3 bg-red-900 text-white rounded font-semibold mb-2 hover:bg-red-800 transition"
+                    >
+                      Volver al inicio
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowConfirmation(false);
+                        setSelectedBus(null);
+                        setSelectedSeat(null);
+                        setReservationData({ nombre: '', dni: '', correo: '' });
+                        setSearchResults([]);
+                        setUserView('mis-reservas');
+                      }}
+                      className="w-full py-3 border-2 border-red-900 text-red-900 rounded font-semibold hover:bg-red-50 transition"
+                    >
+                      Ver mis reservas
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            // SELECCIÓN de asiento
+            if (selectedBus) {
+              return (
+                <div className="min-h-screen bg-gray-50">
+                  <div className="p-6 bg-red-900">
+                    <div className="max-w-7xl mx-auto flex justify-between items-center">
+                      <div className="flex items-center gap-3 text-white">
+                        <BusIcon />
+                        <h1 className="text-2xl font-bold">TerraNova Viajes</h1>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedBus(null);
+                          setSelectedSeat(null);
+                        }}
+                        className="bg-white text-red-900 px-4 py-2 rounded font-semibold hover:bg-gray-100 transition"
+                      >
+                        ← Volver
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-w-4xl mx-auto p-6">
+                    <div className="bg-white rounded-lg shadow-lg p-6">
+                      <h2 className="text-2xl font-bold mb-6 text-red-900">
+                        Selecciona tu asiento - {selectedBus.empresa}
+                      </h2>
+                      
+                      <div className="mb-6 p-4 bg-gray-50 rounded">
+                        <p className="text-gray-700 flex items-center gap-1">
+                          <MapPinIcon />
+                          {selectedBus.origen} → {selectedBus.destino}
+                        </p>
+                        <p className="text-gray-700 flex items-center gap-1">
+                          <CalendarIcon />
+                          {selectedBus.fecha} - {selectedBus.hora}
+                        </p>
+                      </div>
+
+                      <div className="mb-6">
+                        <div className="flex justify-center gap-4 mb-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded bg-gray-200"></div>
+                            <span className="text-sm">Libre</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded bg-red-900"></div>
+                            <span className="text-sm">Ocupado</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded border-2 border-red-900 bg-yellow-100"></div>
+                            <span className="text-sm">Seleccionado</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-3 max-w-md mx-auto">
+                          {selectedBus.asientos.map((asiento) => (
+                            <button
+                              key={asiento.numero}
+                              onClick={() => handleSelectSeat(asiento)}
+                              disabled={asiento.ocupado}
+                              className="h-12 rounded font-semibold border-2 transition"
+                              style={{
+                                backgroundColor: asiento.ocupado 
+                                  ? '#7f1d1d' 
+                                  : selectedSeat?.numero === asiento.numero 
+                                    ? '#fef3c7' 
+                                    : 'white',
+                                borderColor: selectedSeat?.numero === asiento.numero ? '#7f1d1d' : '#e5e7eb',
+                                color: asiento.ocupado ? 'white' : '#374151',
+                                cursor: asiento.ocupado ? 'not-allowed' : 'pointer'
+                              }}
+                            >
+                              {asiento.numero}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {selectedSeat && (
+                        <div className="border-t pt-6">
+                          <h3 className="text-xl font-bold mb-4 text-red-900">Completa tus datos</h3>
+                          
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-semibold mb-2 text-gray-700">Nombre completo</label>
+                              <input
+                                type="text"
+                                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                                value={reservationData.nombre}
+                                onChange={(e) => setReservationData({ ...reservationData, nombre: e.target.value })}
+                                placeholder="Juan Pérez García"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-semibold mb-2 text-gray-700">DNI</label>
+                              <input
+                                type="text"
+                                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                                value={reservationData.dni}
+                                onChange={(e) => setReservationData({ ...reservationData, dni: e.target.value })}
+                                placeholder="12345678"
+                                maxLength="8"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-semibold mb-2 text-gray-700">Correo electrónico</label>
+                              <input
+                                type="email"
+                                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                                value={reservationData.correo}
+                                onChange={(e) => setReservationData({ ...reservationData, correo: e.target.value })}
+                                placeholder="correo@ejemplo.com"
+                              />
+                            </div>
+
+                            <div className="bg-gray-50 p-4 rounded">
+                              <p className="text-lg font-bold text-red-900">Total a pagar: S/. {selectedBus.precio}</p>
+                              <p className="text-sm text-gray-600 mt-1">Asiento seleccionado: {selectedSeat.numero}</p>
+                            </div>
+
+                            <button
+                              onClick={handleConfirmReservation}
+                              className="w-full py-3 bg-red-900 text-white rounded font-semibold hover:bg-red-800 transition"
+                            >
+                              Confirmar Reserva
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Vista RESERVAR - Búsqueda de viajes
+            if (userView === 'reservar') {
+              return (
+                <div className="min-h-screen bg-gray-50">
+                  <div className="p-6 bg-red-900">
+                    <div className="max-w-7xl mx-auto flex justify-between items-center">
+                      <div className="flex items-center gap-3 text-white">
+                        <BusIcon />
+                        <h1 className="text-2xl font-bold">TerraNova Viajes</h1>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setUserView('home')}
+                          className="bg-white text-red-900 px-4 py-2 rounded font-semibold hover:bg-gray-100 transition"
+                        >
+                          ← Inicio
+                        </button>
+                        <button
+                          onClick={() => { setIsLoggedIn(false); setUserType(null); setUserView('home'); }}
+                          className="flex items-center gap-2 bg-white text-red-900 px-4 py-2 rounded hover:bg-gray-100 transition"
+                        >
+                          <LogOutIcon />
+                          Cerrar Sesión
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="max-w-4xl mx-auto p-6">
+                    <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                      <h2 className="text-2xl font-bold mb-6 text-red-900 flex items-center gap-2">
+                        <SearchIcon />
+                        Buscar tu viaje
+                      </h2>
+                      
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold mb-2 text-gray-700">Origen</label>
+                          <select
+                            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                            value={searchParams.origen}
+                            onChange={(e) => setSearchParams({ ...searchParams, origen: e.target.value })}
+                          >
+                            <option value="">Seleccionar</option>
+                            <option value="Lima">Lima</option>
+                            <option value="Cusco">Cusco</option>
+                            <option value="Cajamarca">Cajamarca</option>
+                            <option value="Puno">Puno</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold mb-2 text-gray-700">Destino</label>
+                          <select
+                            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                            value={searchParams.destino}
+                            onChange={(e) => setSearchParams({ ...searchParams, destino: e.target.value })}
+                          >
+                            <option value="">Seleccionar</option>
+                            <option value="Lima">Lima</option>
+                            <option value="Cusco">Cusco</option>
+                            <option value="Cajamarca">Cajamarca</option>
+                            <option value="Puno">Puno</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold mb-2 text-gray-700">Fecha</label>
+                          <input
+                            type="date"
+                            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:border-red-900"
+                            value={searchParams.fecha}
+                            onChange={(e) => setSearchParams({ ...searchParams, fecha: e.target.value })}
+                            min="2025-11-22"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleSearch}
+                        className="mt-6 w-full py-3 bg-red-900 text-white rounded font-semibold flex items-center justify-center gap-2 hover:bg-red-800 transition"
+                      >
+                        <SearchIcon />
+                        Buscar Viajes
+                      </button>
+                    </div>
+
+                    {searchResults.length > 0 && (
+                      <div className="bg-white rounded-lg shadow-lg p-6">
+                        <h2 className="text-2xl font-bold mb-6 text-red-900">Resultados de búsqueda</h2>
+                        
+                        <div className="space-y-4">
+                          {searchResults.map((bus) => {
+                            const libres = bus.asientos.filter(a => !a.ocupado).length;
+                            
+                            return (
+                              <div key={bus.id} className="border-2 border-red-900 rounded-lg p-4 hover:shadow-md transition">
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <h3 className="text-xl font-bold text-red-900">{bus.empresa}</h3>
+                                    <p className="text-gray-700 mt-1 flex items-center gap-1">
+                                      <MapPinIcon />
+                                      {bus.origen} → {bus.destino}
+                                    </p>
+                                    <p className="text-gray-700 flex items-center gap-1">
+                                      <CalendarIcon />
+                                      {bus.fecha} - {bus.hora}
+                                    </p>
+                                    <p className="text-gray-700 mt-2">{libres} asientos disponibles</p>
+                                  </div>
+                                  
+                                  <div className="text-right">
+                                    <p className="text-2xl font-bold text-red-900">S/. {bus.precio}</p>
+                                    <button
+                                      onClick={() => setSelectedBus(bus)}
+                                      className="mt-3 px-6 py-2 bg-red-900 text-white rounded font-semibold hover:bg-red-800 transition"
+                                    >
+                                      Seleccionar
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {searchResults.length === 0 && searchParams.fecha && (
+                      <div className="bg-white rounded-lg shadow-lg p-6 text-center">
+                        <p className="text-gray-600 text-lg">No se encontraron viajes para esta búsqueda.</p>
+                        <p className="text-gray-500 mt-2">Intenta con otra fecha u otra ruta.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            return null;
+          };
+
+          if (!isLoggedIn) {
+            return <LoginForm />;
+          }
+
+          if (userType === 'empresa') {
+            return <EmpresaPanel />;
+          }
+
+          return <UsuarioPanel />;
+        };
+
+        ReactDOM.render(<TerraNovaViajes />, document.getElementById('root'));
+    </script>
+</body>
+</html>
